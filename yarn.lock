@@ -5934,10 +5934,10 @@ xhr@^2.0.4, xhr@^2.3.3:
     parse-headers "^2.0.0"
     xtend "^4.0.0"
 
-xo-connect@^2.0.0:
-  version "2.0.0"
-  resolved "https://registry.yarnpkg.com/xo-connect/-/xo-connect-2.0.0.tgz#11e85237f6bbcef49ce3c279b3f63a50140d4c26"
-  integrity sha512-pqLSDw4IQUACjX7iTDdFsQS7Z2z9X77x1Ql3IjMEX2RwP7dAIOU0+AOjLkzsf4qqnw3j5mwbvheUv4UF/60cQQ==
+xo-connect@^2.1.1:
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/xo-connect/-/xo-connect-2.1.1.tgz#ec983641752cf699957caec0097fe2e57bf96412"
+  integrity sha512-b0JSlPI8hPN+RUBr6rVQF8QC+cI+99QVlIEsgfhJYldda+a1wkKrjTd0IY0OXQ99V8nXi5UNtEu90YG0eBXbBg==
   dependencies:
     typescript "4.9.4"
     web3 "^1.9.0"
