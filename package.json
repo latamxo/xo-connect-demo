@@ -22,7 +22,7 @@
     "uuid": "^11.1.0",
     "web3": "^1.9.0",
     "web3-eth-contract": "^1.9.0",
-    "xo-connect": "^2.1.1"
+    "xo-connect": "file:../xo-connect"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

@@ -8,10 +8,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Client, XOConnectProvider } from "@/xo-connect/src";
 
 import { ethers } from "ethers";
 import { useEffect, useMemo, useState } from "react";
-import { Client, XOConnectProvider } from "xo-connect";
+
 
 const useXOConnect = true;
 
@@ -60,6 +61,12 @@ const KNOWN: Record<
 // ---------- Helpers ----------
 const decToHexChain = (dec: number) => `0x${dec.toString(16)}`;
 const hexToDecChain = (hex: string) => parseInt(hex, 16);
+
+export const isUserRejected = (err: any) =>
+  err?.code === 4001 || err?.code === "ACTION_REJECTED";
+
+export const extractErrorMessage = (err: any) =>
+  err?.data?.message ?? err?.message ?? "Unexpected error";
 
 export default function Demo() {
   const [loading, setLoading] = useState(true);
@@ -118,12 +125,14 @@ export default function Demo() {
         const rpcs = {
           "0x1": process.env.NEXT_PUBLIC_ETH,
           "0x89": process.env.NEXT_PUBLIC_POL,
+          "0x1f": "https://public-node.testnet.rsk.co"
         };
 
         const raw = useXOConnect
           ? new XOConnectProvider({
               rpcs,
               defaultChainId: defaultHex,
+              debug: false,
             })
           : (window as any).ethereum;
 
@@ -223,13 +232,24 @@ export default function Demo() {
   const handlePersonalSign = async () => {
     if (!signer) return;
     try {
+      console.log("Iniciando firma de mensaje...");
       const msg = "Hola desde XOConnect";
       const sig = await signer.signMessage(msg);
+      console.log("Firma obtenida:", sig);
       const who = ethers.utils.verifyMessage(msg, sig);
+      console.log("Firmado por:", who);
       alert(`Signature: ${sig}\nFirmado por: ${who}`);
-    } catch (e) {
-      console.log("Personal sign error:", e);
+    } catch (e: any) {
+      console.error("Personal sign error:", e?.message || e);
     }
+  };
+
+  // Ejemplo de cómo hacer logs que aparecen en XO Debugger
+  const handleTestLogs = () => {
+    console.log("Este es un log normal");
+    console.log("Log con objeto:", { user: "test", chainId: 137 });
+    console.warn("Este es un warning");
+    console.error("Este es un error de ejemplo");
   };
 
   const handleSendNativeTransaction = async () => {
@@ -238,14 +258,19 @@ export default function Demo() {
       // Switch is already handled by effect; just send
       const tx = {
         to: "0x3ca4dBE59Cb3ff037DF60Eb615B29e6F1C498004",
-        value: ethers.utils.parseUnits("0.001", 18), // native is 18
+        value: ethers.utils.parseUnits("0.000001", 18), // native is 18
         // ethers v5 ignores chainId here when using a signer bound to a provider
       };
       const sentTx = await signer.sendTransaction(tx);
       await sentTx.wait();
-      alert(`Enviado 0.001 ${selectedToken.symbol}. Hash: ${sentTx.hash}`);
-    } catch (e) {
-      console.error("🟥 Transfer error:", e);
+      alert(`Enviado 0.000001 ${selectedToken.symbol}. Hash: ${sentTx.hash}`);
+    } catch (err) {
+      if (isUserRejected(err)) {
+        alert(`Cancelado por el usuario`);
+      } else {
+        alert(extractErrorMessage(err));
+      }
+      console.error("🟥 Transfer error:", err);
     }
   };
 
@@ -399,6 +424,36 @@ export default function Demo() {
     }
   };
 
+  const handleApproveSpender = async () => {
+    if (!signer) return;
+
+    try {
+      const POLYGON_CHAIN_ID = "0x89"; // 137 in hex
+      const tokenAddress = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"; // USDC on Polygon
+      const spender = "0x3ca4dBE59Cb3ff037DF60Eb615B29e6F1C498004"; // Example contract
+
+      await ensureChain(POLYGON_CHAIN_ID); // Switch chain in XOConnectProvider
+
+      const abi = [
+        "function approve(address spender, uint256 amount) returns (bool)",
+      ];
+      const contract = new ethers.Contract(tokenAddress, abi, signer);
+
+      const amount = ethers.utils.parseUnits("0.01", 6); // USDC has 6 decimals
+
+      const tx = await contract.approve(spender, amount);
+
+      alert(`Approval tx sent: ${tx.hash}`);
+
+      const receipt = await tx.wait();
+      alert(`✅ Confirmed in block ${receipt.blockNumber}`);
+    } catch (e) {
+      console.log("🟥 Approve error:", e);
+    }
+  };
+
+
+
   return (
     <div className="max-w-xl mx-auto py-10 space-y-6 px-4">
       {loading ? (
@@ -480,6 +535,18 @@ export default function Demo() {
               onClick={handleReadUniV2Reserves}
             >
               Leer Uniswap V2 (USDC/WETH) Reserves (Ethereum)
+            </Button>
+
+            <Button className="w-full" onClick={handleApproveSpender}>
+              Approve 0.01 USDC on Polygon
+            </Button>
+
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={handleTestLogs}
+            >
+              Test Logs (ver en XO Debugger)
             </Button>
           </div>
 
